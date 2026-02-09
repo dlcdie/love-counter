@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 function pad2(n: number) {
@@ -18,14 +18,55 @@ function formatBR(dateStr?: string) {
 }
 
 export default function CustomPage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <CustomPageInner />
+    </Suspense>
+  );
+}
+
+function Loading() {
+  return (
+    <main style={styles.page}>
+      <div style={styles.container}>
+        <div style={styles.topbar}>
+          <div style={styles.brand}>
+            <span style={styles.brandDot} />
+            <span style={styles.brandText}>Love Counter</span>
+          </div>
+          <div style={styles.badge}>Carregando…</div>
+        </div>
+
+        <section style={styles.hero}>
+          <div style={styles.heroLeft}>
+            <h1 style={styles.title}>Carregando…</h1>
+            <p style={styles.subtitle}>Preparando sua página</p>
+            <div style={styles.counterCard}>
+              <div style={styles.counterBig}>…</div>
+              <div style={styles.counterSmall}>…:…:…</div>
+              <div style={styles.counterHint}>contador ao vivo</div>
+            </div>
+          </div>
+          <div style={styles.heroRight}>
+            <div style={styles.photoCard} />
+            <div style={styles.tipsCard}>
+              <div style={styles.cardTitle}>Dica rápida</div>
+              <div style={styles.tipsText}>Aguarde um instante…</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+function CustomPageInner() {
   const sp = useSearchParams();
 
   // Params (URL)
   const nomes = sp.get("nomes") || "Nosso Amor";
   const inicio = sp.get("inicio") || "2021-01-01"; // YYYY-MM-DD
-  const msg =
-    sp.get("msg") ||
-    "Uma mensagem especial aparece aqui. 💛";
+  const msg = sp.get("msg") || "Uma mensagem especial aparece aqui. 💛";
   const foto = sp.get("foto"); // URL opcional da foto
 
   const inicioISO = useMemo(() => `${inicio}T00:00:00-03:00`, [inicio]);
@@ -33,8 +74,8 @@ export default function CustomPage() {
 
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
-    const i = setSystemInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(i as any);
+    const i = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(i);
   }, []);
 
   const diff = Math.max(0, now - startDate);
@@ -85,11 +126,13 @@ export default function CustomPage() {
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
-                  navigator?.share?.({
-                    title: "Love Counter",
-                    text: `Olha nossa página: ${nomes}`,
-                    url: window.location.href,
-                  });
+                  if (typeof navigator !== "undefined" && (navigator as any).share) {
+                    (navigator as any).share({
+                      title: "Love Counter",
+                      text: `Olha nossa página: ${nomes}`,
+                      url: window.location.href,
+                    });
+                  }
                 }}
                 style={styles.ctaPrimary}
               >
@@ -136,7 +179,6 @@ export default function CustomPage() {
           </div>
         </section>
 
-        {/* Bottom spacing */}
         <div style={{ height: 24 }} />
       </div>
     </main>
